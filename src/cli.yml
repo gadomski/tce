@@ -1,22 +1,48 @@
 name: Thermal Colorization Engine
 author: Pete Gadomski <pete@gadom.ski>
 about: Colorizes RiSCAN Pro project with InfraTec thermal imagery.
+settings:
+    - ArgRequiredElseHelp
+    - AllowLeadingHyphen
 args:
     - PROJECT:
-        help: Path to the RiSCAN Pro project to colorize
+        help: Path to the RiSCAN Pro project to colorize.
         required: true
         index: 1
     - IMAGE_DIR:
-        help: Path to the directory that holds the thermal images
+        help: Path to the directory that holds the thermal images.
         required: true
         index: 2
     - LAS_DIR:
-        help: Path to the directory that will hold the output files
+        help: Path to the directory that will hold the output files.
         required: true
         index: 3
     - scan-position:
-        help: Scan position to colorize, if none are specified all will be used
+        help: Scan position to colorize, if none are specified all will be used.
         takes_value: true
         short: s
         long: scan-position
         multiple: true
+    - sync-to-pps:
+        help: Force the rxp stream to only produce points that are synced to a pps signal.
+        long: sync-to-pps
+    - min-reflectance:
+        help: The minimum of the reflectance domain, which will be mapped to the intensity domain in the las output.
+        long: min-reflectance
+        takes_value: true
+        default_value: "-5"
+    - max-reflectance:
+        help: The maximum of the reflectance domain, which will be mapped to the intensity domain in the las output.
+        long: max-reflectance
+        takes_value: true
+        default_value: "20"
+    - min-temperature:
+        help: The minimum of the temperature domain, which will be mapped to a color scale.
+        long: min-temperature
+        takes_value: true
+        default_value: "-40"
+    - max-temperature:
+        help: The maximum of the temperature domain, which will be mapped to a color scale.
+        long: max-temperature
+        takes_value: true
+        default_value: "-20"

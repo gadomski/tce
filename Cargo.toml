@@ -9,6 +9,7 @@ ansi_term = "0.9"
 clap = { version = "2.26", features = ["yaml"] }
 irb = { path = "../irb-rs", features = ["irbacs-sys"] }
 las = { path = "/Users/rdcrlpjg/Repos/las-rs" }
+palette = "*"
 riscan-pro = { path = "/Users/rdcrlpjg/Repos/riscan-pro" }
 scanifc = { path = "../rivlib-rs/scanifc" }
 walkdir = "*"
