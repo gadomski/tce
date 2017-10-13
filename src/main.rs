@@ -227,6 +227,10 @@ fn main() {
                     .iter()
                     .filter_map(|image_group| image_group.color(&socs))
                     .collect::<Vec<_>>();
+                // If there are no temperatures, skip the point.
+                if temperatures.is_empty() {
+                    continue;
+                }
                 // Since multiple images might have a pixel for a given point, we average all the
                 // temperatures. This is to avoid harsh lines as one image breaks into another.
                 let temperature = temperatures.iter().sum::<f64>() / temperatures.len() as f64;
@@ -260,7 +264,7 @@ impl<'a> ImageGroup<'a> {
         self.camera_calibration.cmcs_to_ics(&cmcs).map(|(u, v)| {
             self.irb
                 .temperature(u.trunc() as i32, v.trunc() as i32)
-                .expect("error when retrieving temperature")
+                .expect("error when retrieving temperature") - 273.15
         })
     }
 }
