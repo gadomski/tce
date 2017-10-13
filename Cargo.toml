@@ -10,4 +10,5 @@ clap = { version = "2.26", features = ["yaml"] }
 irb = { path = "../irb-rs", features = ["irbacs-sys"] }
 las = { path = "/Users/rdcrlpjg/Repos/las-rs" }
 riscan-pro = { path = "/Users/rdcrlpjg/Repos/riscan-pro" }
+scanifc = { path = "../rivlib-rs/scanifc" }
 walkdir = "*"

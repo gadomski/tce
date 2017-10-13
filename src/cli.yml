@@ -14,3 +14,9 @@ args:
         help: Path to the directory that will hold the output files
         required: true
         index: 3
+    - scan-position:
+        help: Scan position to colorize, if none are specified all will be used
+        takes_value: true
+        short: s
+        long: scan-position
+        multiple: true
