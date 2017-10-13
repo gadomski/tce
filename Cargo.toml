@@ -7,9 +7,9 @@ description = "Thermal Colorization Engine"
 [dependencies]
 ansi_term = "0.9"
 clap = { version = "2.26", features = ["yaml"] }
-irb = { path = "../irb-rs", features = ["irbacs-sys"] }
-las = { path = "/Users/rdcrlpjg/Repos/las-rs" }
-palette = "*"
-riscan-pro = { path = "/Users/rdcrlpjg/Repos/riscan-pro" }
-scanifc = { path = "../rivlib-rs/scanifc" }
-walkdir = "*"
+irb = { git = "https://github.com/gadomski/irb-rs", features = ["irbacs-sys"] }
+las = { git = "https://github.com/gadomski/las-rs" }
+palette = "0.2"
+riscan-pro = { git = "https://github.com/gadomski/riscan-pro" }
+scanifc = { git = "https://github.com/gadomski/rivlib-rs" }
+walkdir = "1.0"
