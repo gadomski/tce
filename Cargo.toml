@@ -5,6 +5,7 @@ authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
 description = "Thermal Colorization Engine"
 
 [dependencies]
+clap = { version = "2.26", features = ["yaml"] }
 riscan-pro = { path = "/Users/rdcrlpjg/Repos/riscan-pro" }
 las = { path = "/Users/rdcrlpjg/Repos/las-rs" }
 irb = { path = "../irb-rs" }

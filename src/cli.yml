@@ -1,0 +1,16 @@
+name: Thermal Colorization Engine
+author: Pete Gadomski <pete@gadom.ski>
+about: Colorizes RiSCAN Pro project with InfraTec thermal imagery.
+args:
+    - PROJECT:
+        help: Path to the RiSCAN Pro project to colorize
+        required: true
+        index: 1
+    - IMAGE_DIRECTORY:
+        help: Path to the directory that holds the thermal images
+        required: true
+        index: 2
+    - LAS_DIRECTORY:
+        help: Path to the directory that will hold the output files
+        required: true
+        index: 3
