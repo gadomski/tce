@@ -46,3 +46,6 @@ args:
         long: max-temperature
         takes_value: true
         default_value: "-20"
+    - rotate:
+        help: If the RiSCAN project has the images in the original orientation, but the actual images files are rotated 90° to the right, use this flag.
+        long: rotate

@@ -129,6 +129,7 @@ fn main() {
                     image: image,
                     irb: irb,
                     mount_calibration: mount_calibration,
+                    rotate: matches.is_present("rotate"),
                 });
         }
     }
@@ -256,12 +257,18 @@ struct ImageGroup<'a> {
     image: &'a Image,
     irb: Irb,
     mount_calibration: &'a MountCalibration,
+    rotate: bool,
 }
 
 impl<'a> ImageGroup<'a> {
     fn color(&self, socs: &Point<Socs>) -> Option<f64> {
         let cmcs = socs.to_cmcs(self.image.cop, self.mount_calibration);
-        self.camera_calibration.cmcs_to_ics(&cmcs).map(|(u, v)| {
+        self.camera_calibration.cmcs_to_ics(&cmcs).map(|(mut u,
+          mut v)| {
+            if self.rotate {
+                u = v;
+                v = self.camera_calibration.height as f64 - u;
+            }
             self.irb
                 .temperature(u.trunc() as i32, v.trunc() as i32)
                 .expect("error when retrieving temperature") - 273.15
