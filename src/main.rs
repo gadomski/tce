@@ -9,7 +9,7 @@ extern crate walkdir;
 
 use clap::App;
 use irb::Irb;
-use las::{Header, Writer};
+use las::{Header, Transform, Vector, Writer};
 use las::point::Color;
 use palette::{Gradient, Rgb};
 use riscan_pro::{CameraCalibration, MountCalibration, Point, Project, Socs};
@@ -148,6 +148,21 @@ fn main() {
     // Las point format three includes gps time (which use use to store the temperature float) and
     // rgb data.
     header.point_format = 3.into();
+    // We set the offset to the pop offsets.
+    header.transforms = Vector {
+        x: Transform {
+            scale: 0.001,
+            offset: project.pop[(0, 3)],
+        },
+        y: Transform {
+            scale: 0.001,
+            offset: project.pop[(1, 3)],
+        },
+        z: Transform {
+            scale: 0.001,
+            offset: project.pop[(2, 3)],
+        },
+    };
     // Reflectance values need to be scaled to intensity u16s.
     let min_reflectance = value_t!(matches, "min-reflectance", f32).unwrap_or_else(|e| {
         println!("Unable to parse min reflectance as a f32: {}", e);
