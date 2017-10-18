@@ -281,8 +281,9 @@ impl<'a> ImageGroup<'a> {
         self.camera_calibration.cmcs_to_ics(&cmcs).map(|(mut u,
           mut v)| {
             if self.rotate {
-                u = v;
-                v = self.camera_calibration.height as f64 - u;
+                let new_u = self.camera_calibration.height as f64 - v;
+                v = u;
+                u = new_u;
             }
             self.irb
                 .temperature(u.trunc() as i32, v.trunc() as i32)
