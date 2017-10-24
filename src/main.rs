@@ -20,11 +20,11 @@ use std::u16;
 fn main() {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
-    let colorizer = Colorizer::new(&matches);
-    colorizer.colorize();
+    let config = Config::new(&matches);
+    config.colorize();
 }
 
-struct Colorizer {
+struct Config {
     image_dir: PathBuf,
     las_dir: PathBuf,
     max_reflectance: f32,
@@ -45,8 +45,8 @@ struct ImageGroup<'a> {
     rotate: bool,
 }
 
-impl Colorizer {
-    fn new(matches: &ArgMatches) -> Colorizer {
+impl Config {
+    fn new(matches: &ArgMatches) -> Config {
         let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
         let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
         let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
@@ -60,7 +60,7 @@ impl Colorizer {
             (min_temperature, min_temperature_color),
             (max_temperature, max_temperature_color),
         ]);
-        Colorizer {
+        Config {
             image_dir: image_dir,
             las_dir: las_dir,
             max_reflectance: max_reflectance,
