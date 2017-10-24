@@ -204,6 +204,14 @@ fn main() {
         let scan_position = project.scan_positions.get(name.as_str()).unwrap();
         // We colorize every singlescan rxp, as defined in the project xml.
         let paths = scan_position.singlescan_rxp_paths(&project);
+        let use_scanpos_name = matches.is_present("use-scanpos-name");
+        if use_scanpos_name && paths.len() > 1 {
+            panic!(
+                "--use-scanpos-name was provided, but there are {} rxp files for scan position {}",
+                paths.len(),
+                scan_position.name
+            );
+        }
         for rxpfile in paths {
             let stream = match Stream::from_path(&rxpfile)
                 .sync_to_pps(matches.is_present("sync-to-pps"))
@@ -222,9 +230,13 @@ fn main() {
                 }
             };
             let mut lasfile = las_dir.clone();
-            lasfile.push(rxpfile.with_extension("las").file_name().expect(
-                "rxp path should have a file name",
-            ));
+            if use_scanpos_name {
+                lasfile.push(Path::new(&scan_position.name).with_extension("las"));
+            } else {
+                lasfile.push(rxpfile.with_extension("las").file_name().expect(
+                    "rxp path should have a file name",
+                ));
+            }
             let mut writer = match Writer::from_path(&lasfile, header.clone()) {
                 Ok(writer) => {
                     println!("Opened las file at {}", lasfile.display());
