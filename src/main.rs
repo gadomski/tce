@@ -48,6 +48,7 @@ fn main() {
 
 struct Config {
     image_dir: PathBuf,
+    keep_without_thermal: bool,
     las_dir: PathBuf,
     max_reflectance: f32,
     min_reflectance: f32,
@@ -89,6 +90,7 @@ impl Config {
         ]);
         Config {
             image_dir: image_dir,
+            keep_without_thermal: matches.is_present("keep-without-thermal"),
             las_dir: las_dir,
             max_reflectance: max_reflectance,
             min_reflectance: min_reflectance,
@@ -124,6 +126,8 @@ impl Config {
     }
 
     fn colorize(&self, scan_position: &ScanPosition, translation: &Translation) {
+        use std::f64;
+
         let image_groups = self.image_groups(scan_position);
         let stream = Stream::from_path(&translation.infile)
             .sync_to_pps(self.sync_to_pps)
@@ -138,10 +142,15 @@ impl Config {
                 .iter()
                 .filter_map(|image_group| image_group.temperature(&socs))
                 .collect::<Vec<_>>();
-            if temperatures.is_empty() {
-                continue;
-            }
-            let temperature = temperatures.iter().sum::<f64>() / temperatures.len() as f64;
+            let temperature = if temperatures.is_empty() {
+                if self.keep_without_thermal {
+                    f64::NAN
+                } else {
+                    continue;
+                }
+            } else {
+                temperatures.iter().sum::<f64>() / temperatures.len() as f64
+            };
             let glcs = socs.to_prcs(scan_position.sop).to_glcs(self.project.pop);
             let point = las::Point {
                 x: glcs.x,
