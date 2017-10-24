@@ -20,45 +20,29 @@ use std::u16;
 fn main() {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
-
-    let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
-    println!("Opened project: {}", project.path.display());
-
-    let mut scan_positions: Vec<_> = if let Some(requested) = matches.values_of("scan-position") {
-        println!("Only colorizing these scan positions:");
-        for requested in requested.clone() {
-            println!("  - {}", requested);
-        }
-        requested
-            .map(|requested| project.scan_positions.get(requested).unwrap())
-            .collect()
-    } else {
-        println!("Colorizing all scan positions");
-        project.scan_positions.values().collect()
-    };
-    scan_positions.sort_by_key(|s| &s.name);
-    let colorizer = Colorizer::new(&project, &matches);
-    for scan_position in scan_positions {
-        println!("Colorizing scan position: {}", scan_position.name);
-        colorizer.colorize(scan_position);
-    }
+    let colorizer = Colorizer::new(&matches);
+    colorizer.colorize();
     println!("Done!");
 }
 
-struct Colorizer<'a> {
+struct Colorizer {
     image_dir: PathBuf,
     las_dir: PathBuf,
     max_reflectance: f32,
     min_reflectance: f32,
-    project: &'a Project,
+    project: Project,
     rotate: bool,
+    scan_position_names: Option<Vec<String>>,
     sync_to_pps: bool,
     temperature_gradient: Gradient<Rgb>,
     use_scanpos_names: bool,
 }
 
-impl<'a> Colorizer<'a> {
-    fn new(project: &'a Project, matches: &ArgMatches) -> Colorizer<'a> {
+impl Colorizer {
+    fn new(matches: &ArgMatches) -> Colorizer {
+        let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
+        println!("Opened project: {}", project.path.display());
+
         let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
         let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
         let min_reflectance = value_t!(matches, "min-reflectance", f32).unwrap();
@@ -78,13 +62,35 @@ impl<'a> Colorizer<'a> {
             min_reflectance: min_reflectance,
             project: project,
             rotate: matches.is_present("rotate"),
+            scan_position_names: matches.values_of("scan-position").map(|values| {
+                values.map(|name| name.to_string()).collect()
+            }),
             sync_to_pps: matches.is_present("sync-to-pps"),
             temperature_gradient: temperature_gradient,
             use_scanpos_names: matches.is_present("use-scanpos-names"),
         }
     }
 
-    fn colorize(&self, scan_position: &ScanPosition) {
+    fn scan_positions(&self) -> Vec<&ScanPosition> {
+        let mut scan_positions: Vec<_> = if let Some(names) = self.scan_position_names.as_ref() {
+            names
+                .iter()
+                .map(|name| self.project.scan_positions.get(name).unwrap())
+                .collect()
+        } else {
+            self.project.scan_positions.values().collect()
+        };
+        scan_positions.sort_by_key(|s| &s.name);
+        scan_positions
+    }
+
+    fn colorize(&self) {
+        for scan_position in self.scan_positions() {
+            self.colorize_scan_position(scan_position)
+        }
+    }
+
+    fn colorize_scan_position(&self, scan_position: &ScanPosition) {
         let mut image_dir = self.image_dir.clone();
         image_dir.push(&scan_position.name);
         if !image_dir.exists() {
