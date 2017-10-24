@@ -29,10 +29,20 @@ fn main() {
     println!("done.");
 
     for scan_position in config.scan_positions() {
-        print!("Colorizing {}...", scan_position.name);
-        stdout.flush().unwrap();
-        config.colorize_scan_position(scan_position);
-        println!("done.");
+        println!("Colorizing {}:", scan_position.name);
+        let translations = config.translations(scan_position);
+        if translations.is_empty() {
+            println!("  - No translations found");
+        } else {
+            for translation in translations {
+                println!(
+                    "  - Translation:\n    - Infile: {}\n    - Outfile: {}",
+                    translation.infile.display(),
+                    translation.outfile.display()
+                );
+                config.colorize(scan_position, &translation);
+            }
+        }
     }
 }
 
@@ -55,6 +65,11 @@ struct ImageGroup<'a> {
     irb: Irb,
     mount_calibration: &'a MountCalibration,
     rotate: bool,
+}
+
+struct Translation {
+    infile: PathBuf,
+    outfile: PathBuf,
 }
 
 impl Config {
@@ -88,53 +103,56 @@ impl Config {
         }
     }
 
-    fn colorize_scan_position(&self, scan_position: &ScanPosition) {
-        let image_groups = self.image_groups(scan_position);
+    fn translations(&self, scan_position: &ScanPosition) -> Vec<Translation> {
         let paths = scan_position.singlescan_rxp_paths(&self.project);
-        let use_scanpos_names = self.use_scanpos_names;
-        if use_scanpos_names && paths.len() > 1 {
+        if self.use_scanpos_names && paths.len() > 1 {
             panic!(
                 "--use-scanpos-names was provided, but there are {} rxp files for scan position {}",
                 paths.len(),
                 scan_position.name
             );
         }
-        for rxpfile in paths {
-            let stream = Stream::from_path(&rxpfile)
-                .sync_to_pps(self.sync_to_pps)
-                .open()
-                .unwrap();
-            let mut lasfile = self.las_dir.clone();
-            if use_scanpos_names {
-                lasfile.push(Path::new(&scan_position.name).with_extension("las"));
-            } else {
-                lasfile.push(rxpfile.with_extension("las").file_name().unwrap());
-            }
-            let mut writer = las::Writer::from_path(&lasfile, self.las_header()).unwrap();
-
-            for point in stream {
-                let point = point.expect("could not read rxp point");
-                let socs = Point::socs(point.x, point.y, point.z);
-                let temperatures = image_groups
-                    .iter()
-                    .filter_map(|image_group| image_group.color(&socs))
-                    .collect::<Vec<_>>();
-                if temperatures.is_empty() {
-                    continue;
+        paths
+            .into_iter()
+            .map(|path| {
+                Translation {
+                    outfile: self.outfile(scan_position, &path),
+                    infile: path,
                 }
-                let temperature = temperatures.iter().sum::<f64>() / temperatures.len() as f64;
-                let glcs = socs.to_prcs(scan_position.sop).to_glcs(self.project.pop);
-                let point = las::Point {
-                    x: glcs.x,
-                    y: glcs.y,
-                    z: glcs.z,
-                    intensity: self.to_intensity(point.reflectance),
-                    color: Some(self.to_color(temperature as f32)),
-                    gps_time: Some(temperature),
-                    ..Default::default()
-                };
-                writer.write(&point).expect("could not write las point");
+            })
+            .collect()
+    }
+
+    fn colorize(&self, scan_position: &ScanPosition, translation: &Translation) {
+        let image_groups = self.image_groups(scan_position);
+        let stream = Stream::from_path(&translation.infile)
+            .sync_to_pps(self.sync_to_pps)
+            .open()
+            .unwrap();
+        let mut writer = las::Writer::from_path(&translation.outfile, self.las_header()).unwrap();
+
+        for point in stream {
+            let point = point.expect("could not read rxp point");
+            let socs = Point::socs(point.x, point.y, point.z);
+            let temperatures = image_groups
+                .iter()
+                .filter_map(|image_group| image_group.color(&socs))
+                .collect::<Vec<_>>();
+            if temperatures.is_empty() {
+                continue;
             }
+            let temperature = temperatures.iter().sum::<f64>() / temperatures.len() as f64;
+            let glcs = socs.to_prcs(scan_position.sop).to_glcs(self.project.pop);
+            let point = las::Point {
+                x: glcs.x,
+                y: glcs.y,
+                z: glcs.z,
+                intensity: self.to_intensity(point.reflectance),
+                color: Some(self.to_color(temperature as f32)),
+                gps_time: Some(temperature),
+                ..Default::default()
+            };
+            writer.write(&point).expect("could not write las point");
         }
     }
 
@@ -224,6 +242,16 @@ impl Config {
                 }
             }
         }
+    }
+
+    fn outfile<P: AsRef<Path>>(&self, scan_position: &ScanPosition, infile: P) -> PathBuf {
+        let mut outfile = self.las_dir.clone();
+        if self.use_scanpos_names {
+            outfile.push(Path::new(&scan_position.name).with_extension("las"));
+        } else {
+            outfile.push(infile.as_ref().with_extension("las").file_name().unwrap());
+        }
+        outfile
     }
 }
 
