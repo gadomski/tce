@@ -18,10 +18,22 @@ use std::path::{Path, PathBuf};
 use std::u16;
 
 fn main() {
+    use std::io::Write;
+    let mut stdout = std::io::stdout();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
+    print!("Configuring...");
+    stdout.flush().unwrap();
     let config = Config::new(&matches);
-    config.colorize();
+    println!("done.");
+
+    for scan_position in config.scan_positions() {
+        print!("Colorizing {}...", scan_position.name);
+        stdout.flush().unwrap();
+        config.colorize_scan_position(scan_position);
+        println!("done.");
+    }
 }
 
 struct Config {
@@ -73,12 +85,6 @@ impl Config {
             sync_to_pps: matches.is_present("sync-to-pps"),
             temperature_gradient: temperature_gradient,
             use_scanpos_names: matches.is_present("use-scanpos-names"),
-        }
-    }
-
-    fn colorize(&self) {
-        for scan_position in self.scan_positions() {
-            self.colorize_scan_position(scan_position)
         }
     }
 
