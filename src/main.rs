@@ -37,6 +37,14 @@ struct Colorizer {
     use_scanpos_names: bool,
 }
 
+struct ImageGroup<'a> {
+    camera_calibration: &'a CameraCalibration,
+    image: &'a Image,
+    irb: Irb,
+    mount_calibration: &'a MountCalibration,
+    rotate: bool,
+}
+
 impl Colorizer {
     fn new(matches: &ArgMatches) -> Colorizer {
         let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
@@ -199,14 +207,6 @@ impl Colorizer {
         };
         header
     }
-}
-
-struct ImageGroup<'a> {
-    camera_calibration: &'a CameraCalibration,
-    image: &'a Image,
-    irb: Irb,
-    mount_calibration: &'a MountCalibration,
-    rotate: bool,
 }
 
 impl<'a> ImageGroup<'a> {
