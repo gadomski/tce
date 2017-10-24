@@ -81,6 +81,10 @@ fn main() {
 
         let mut image_dir = image_dir.clone();
         image_dir.push(&scan_position.name);
+        if !image_dir.exists() {
+            println!("No images for this scan position, skipping");
+            continue;
+        }
         let image_groups: Vec<_> = fs::read_dir(image_dir)
             .unwrap()
             .filter_map(|entry| {
