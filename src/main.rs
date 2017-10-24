@@ -8,7 +8,7 @@
 // certain way, and the InfraTec imagery must be named in a way that the images can be linked back
 // to their scan positions. Since this is a one-off project, you'll have to read this source (and
 // the source of [riscan-pro](https://github.com/gadomski/riscan-pro) to figure out what that
-// setup looks like.
+// setup looks like).
 //
 // The source for **tce** is commented in the literate programming style, and the
 // [docco](https://github.com/jashkenas/docco) output is available at
