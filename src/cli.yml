@@ -52,6 +52,6 @@ args:
     - use-scanpos-names:
         help: By default, output las files are named with the same file stem as their source rxp. If this option is true, the output las files will instead be named with the same file stem as their source scan position. The process will error if a single scan position has more than one rxp.
         long: use-scanpos-names
-    - include-uncolored:
+    - keep-without-thermal:
         help: Include points that don't have any thermal data.
-        long: include-uncolored
+        long: keep-without-thermal

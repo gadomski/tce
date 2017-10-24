@@ -136,7 +136,7 @@ impl Config {
             let socs = Point::socs(point.x, point.y, point.z);
             let temperatures = image_groups
                 .iter()
-                .filter_map(|image_group| image_group.color(&socs))
+                .filter_map(|image_group| image_group.temperature(&socs))
                 .collect::<Vec<_>>();
             if temperatures.is_empty() {
                 continue;
@@ -256,7 +256,7 @@ impl Config {
 }
 
 impl<'a> ImageGroup<'a> {
-    fn color(&self, socs: &Point<Socs>) -> Option<f64> {
+    fn temperature(&self, socs: &Point<Socs>) -> Option<f64> {
         let cmcs = socs.to_cmcs(self.image.cop, self.mount_calibration);
         self.camera_calibration.cmcs_to_ics(&cmcs).map(|(mut u,
           mut v)| {
