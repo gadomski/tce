@@ -89,36 +89,7 @@ impl Config {
     }
 
     fn colorize_scan_position(&self, scan_position: &ScanPosition) {
-        let mut image_dir = self.image_dir.clone();
-        image_dir.push(&scan_position.name);
-        if !image_dir.exists() {
-            return;
-        }
-        let image_groups: Vec<_> = fs::read_dir(image_dir)
-            .unwrap()
-            .filter_map(|entry| {
-                let entry = entry.unwrap();
-                if entry.path().extension().map(|e| e == "irb").unwrap_or(
-                    false,
-                )
-                {
-                    let image = scan_position.image_from_path(entry.path()).unwrap();
-                    let irb = Irb::from_path(entry.path().to_string_lossy().as_ref()).unwrap();
-                    let camera_calibration = image.camera_calibration(&self.project).unwrap();
-                    let mount_calibration = image.mount_calibration(&self.project).unwrap();
-                    Some(ImageGroup {
-                        camera_calibration: camera_calibration,
-                        image: image,
-                        irb: irb,
-                        mount_calibration: mount_calibration,
-                        rotate: self.rotate,
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect();
-
+        let image_groups = self.image_groups(scan_position);
         let paths = scan_position.singlescan_rxp_paths(&self.project);
         let use_scanpos_names = self.use_scanpos_names;
         if use_scanpos_names && paths.len() > 1 {
@@ -212,6 +183,38 @@ impl Config {
             },
         };
         header
+    }
+
+    fn image_groups<'a>(&'a self, scan_position: &'a ScanPosition) -> Vec<ImageGroup<'a>> {
+        let mut image_dir = self.image_dir.clone();
+        image_dir.push(&scan_position.name);
+        if !image_dir.exists() {
+            return Vec::new();
+        }
+        fs::read_dir(image_dir)
+            .unwrap()
+            .filter_map(|entry| {
+                let entry = entry.unwrap();
+                if entry.path().extension().map(|e| e == "irb").unwrap_or(
+                    false,
+                )
+                {
+                    let image = scan_position.image_from_path(entry.path()).unwrap();
+                    let irb = Irb::from_path(entry.path().to_string_lossy().as_ref()).unwrap();
+                    let camera_calibration = image.camera_calibration(&self.project).unwrap();
+                    let mount_calibration = image.mount_calibration(&self.project).unwrap();
+                    Some(ImageGroup {
+                        camera_calibration: camera_calibration,
+                        image: image,
+                        irb: irb,
+                        mount_calibration: mount_calibration,
+                        rotate: self.rotate,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
