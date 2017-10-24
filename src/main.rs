@@ -188,33 +188,42 @@ impl Config {
     fn image_groups<'a>(&'a self, scan_position: &'a ScanPosition) -> Vec<ImageGroup<'a>> {
         let mut image_dir = self.image_dir.clone();
         image_dir.push(&scan_position.name);
-        if !image_dir.exists() {
-            return Vec::new();
-        }
-        fs::read_dir(image_dir)
-            .unwrap()
-            .filter_map(|entry| {
-                let entry = entry.unwrap();
-                if entry.path().extension().map(|e| e == "irb").unwrap_or(
-                    false,
-                )
-                {
-                    let image = scan_position.image_from_path(entry.path()).unwrap();
-                    let irb = Irb::from_path(entry.path().to_string_lossy().as_ref()).unwrap();
-                    let camera_calibration = image.camera_calibration(&self.project).unwrap();
-                    let mount_calibration = image.mount_calibration(&self.project).unwrap();
-                    Some(ImageGroup {
-                        camera_calibration: camera_calibration,
-                        image: image,
-                        irb: irb,
-                        mount_calibration: mount_calibration,
-                        rotate: self.rotate,
+        match fs::read_dir(image_dir) {
+            Ok(read_dir) => {
+                read_dir
+                    .filter_map(|entry| {
+                        let entry = entry.unwrap();
+                        if entry.path().extension().map(|e| e == "irb").unwrap_or(
+                            false,
+                        )
+                        {
+                            let image = scan_position.image_from_path(entry.path()).unwrap();
+                            let irb = Irb::from_path(entry.path().to_string_lossy().as_ref())
+                                .unwrap();
+                            let camera_calibration =
+                                image.camera_calibration(&self.project).unwrap();
+                            let mount_calibration = image.mount_calibration(&self.project).unwrap();
+                            Some(ImageGroup {
+                                camera_calibration: camera_calibration,
+                                image: image,
+                                irb: irb,
+                                mount_calibration: mount_calibration,
+                                rotate: self.rotate,
+                            })
+                        } else {
+                            None
+                        }
                     })
-                } else {
-                    None
+                    .collect()
+            }
+            Err(err) => {
+                use std::io::ErrorKind;
+                match err.kind() {
+                    ErrorKind::NotFound => Vec::new(),
+                    _ => panic!("io error: {}", err),
                 }
-            })
-            .collect()
+            }
+        }
     }
 }
 
