@@ -12,4 +12,3 @@ las = { git = "https://github.com/gadomski/las-rs" }
 palette = "0.2"
 riscan-pro = { git = "https://github.com/gadomski/riscan-pro" }
 scanifc = { git = "https://github.com/gadomski/rivlib-rs" }
-walkdir = "1.0"

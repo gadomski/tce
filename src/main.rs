@@ -5,20 +5,17 @@ extern crate las;
 extern crate palette;
 extern crate riscan_pro;
 extern crate scanifc;
-extern crate walkdir;
 
 use clap::App;
 use irb::Irb;
-use las::{Header, Transform, Vector, Writer};
 use las::point::Color;
 use palette::{Gradient, Rgb};
 use riscan_pro::{CameraCalibration, MountCalibration, Point, Project, Socs};
 use riscan_pro::scan_position::Image;
 use scanifc::point3d::Stream;
-use std::collections::BTreeMap;
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::u16;
-use walkdir::WalkDir;
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -27,63 +24,33 @@ fn main() {
     let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
     println!("Opened project: {}", project.path.display());
 
-    if let Some(requested) = matches.values_of("scan-position") {
+    let scan_positions: Vec<_> = if let Some(requested) = matches.values_of("scan-position") {
         println!("Only colorizing these scan positions:");
-        for requested in requested {
+        for requested in requested.clone() {
             println!("  - {}", requested);
         }
+        requested
+            .map(|requested| project.scan_positions.get(requested).unwrap())
+            .collect()
     } else {
         println!("Colorizing all scan positions");
-    }
-    let mut scan_positions = BTreeMap::new();
-    for entry in WalkDir::new(matches.value_of("IMAGE_DIR").unwrap()) {
-        let entry = entry.unwrap();
-        if entry.path().extension().map(|e| e == "irb").unwrap_or(
-            false,
-        )
-        {
-            let scan_position = project.scan_position_from_path(entry.path()).unwrap();
-            // If we have a scan position filter, apply it.
-            if let Some(mut requested) = matches.values_of("scan-position") {
-                if requested.all(|r| r != scan_position.name) {
-                    continue;
-                }
-            }
-            let image = scan_position.image_from_path(entry.path()).unwrap();
-            let irb = Irb::from_path(entry.path().to_string_lossy().as_ref()).unwrap();
-            let camera_calibration = image.camera_calibration(&project).unwrap();
-            let mount_calibration = image.mount_calibration(&project).unwrap();
-            scan_positions
-                .entry(&scan_position.name)
-                .or_insert_with(Vec::new)
-                .push(ImageGroup {
-                    camera_calibration: camera_calibration,
-                    image: image,
-                    irb: irb,
-                    mount_calibration: mount_calibration,
-                    rotate: matches.is_present("rotate"),
-                });
-        }
-    }
-
-    println!("Found {} scan positions:", scan_positions.len());
-    for (name, image_groups) in scan_positions.iter() {
-        println!("  - {} with {} images", name, image_groups.len());
-    }
-
+        project.scan_positions.values().collect()
+    };
+    let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
     let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
-    let mut header = Header::default();
-    header.point_format = 3.into();
-    header.transforms = Vector {
-        x: Transform {
+
+    let mut las_header = las::Header::default();
+    las_header.point_format = 3.into();
+    las_header.transforms = las::Vector {
+        x: las::Transform {
             scale: 0.001,
             offset: project.pop[(0, 3)],
         },
-        y: Transform {
+        y: las::Transform {
             scale: 0.001,
             offset: project.pop[(1, 3)],
         },
-        z: Transform {
+        z: las::Transform {
             scale: 0.001,
             offset: project.pop[(2, 3)],
         },
@@ -109,10 +76,36 @@ fn main() {
         }
     };
 
-    for (name, image_groups) in scan_positions.iter() {
-        println!("Colorizing scan position: {}", name);
+    for scan_position in &scan_positions {
+        println!("Colorizing scan position: {}", scan_position.name);
 
-        let scan_position = project.scan_positions.get(name.as_str()).unwrap();
+        let mut image_dir = image_dir.clone();
+        image_dir.push(&scan_position.name);
+        let image_groups: Vec<_> = fs::read_dir(image_dir)
+            .unwrap()
+            .filter_map(|entry| {
+                let entry = entry.unwrap();
+                if entry.path().extension().map(|e| e == "irb").unwrap_or(
+                    false,
+                )
+                {
+                    let image = scan_position.image_from_path(entry.path()).unwrap();
+                    let irb = Irb::from_path(entry.path().to_string_lossy().as_ref()).unwrap();
+                    let camera_calibration = image.camera_calibration(&project).unwrap();
+                    let mount_calibration = image.mount_calibration(&project).unwrap();
+                    Some(ImageGroup {
+                        camera_calibration: camera_calibration,
+                        image: image,
+                        irb: irb,
+                        mount_calibration: mount_calibration,
+                        rotate: matches.is_present("rotate"),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
         let paths = scan_position.singlescan_rxp_paths(&project);
         let use_scanpos_names = matches.is_present("use-scanpos-names");
         if use_scanpos_names && paths.len() > 1 {
@@ -134,7 +127,7 @@ fn main() {
             } else {
                 lasfile.push(rxpfile.with_extension("las").file_name().unwrap());
             }
-            let mut writer = Writer::from_path(&lasfile, header.clone()).unwrap();
+            let mut writer = las::Writer::from_path(&lasfile, las_header.clone()).unwrap();
             println!("Opened las file at {}", lasfile.display());
 
             for point in stream {
