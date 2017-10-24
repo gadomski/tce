@@ -24,7 +24,7 @@ fn main() {
     let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
     println!("Opened project: {}", project.path.display());
 
-    let scan_positions: Vec<_> = if let Some(requested) = matches.values_of("scan-position") {
+    let mut scan_positions: Vec<_> = if let Some(requested) = matches.values_of("scan-position") {
         println!("Only colorizing these scan positions:");
         for requested in requested.clone() {
             println!("  - {}", requested);
@@ -36,6 +36,7 @@ fn main() {
         println!("Colorizing all scan positions");
         project.scan_positions.values().collect()
     };
+    scan_positions.sort_by_key(|s| &s.name);
     let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
     let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
 
