@@ -22,7 +22,6 @@ fn main() {
     let matches = App::from_yaml(yaml).get_matches();
     let colorizer = Colorizer::new(&matches);
     colorizer.colorize();
-    println!("Done!");
 }
 
 struct Colorizer {
@@ -41,8 +40,6 @@ struct Colorizer {
 impl Colorizer {
     fn new(matches: &ArgMatches) -> Colorizer {
         let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
-        println!("Opened project: {}", project.path.display());
-
         let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
         let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
         let min_reflectance = value_t!(matches, "min-reflectance", f32).unwrap();
@@ -71,19 +68,6 @@ impl Colorizer {
         }
     }
 
-    fn scan_positions(&self) -> Vec<&ScanPosition> {
-        let mut scan_positions: Vec<_> = if let Some(names) = self.scan_position_names.as_ref() {
-            names
-                .iter()
-                .map(|name| self.project.scan_positions.get(name).unwrap())
-                .collect()
-        } else {
-            self.project.scan_positions.values().collect()
-        };
-        scan_positions.sort_by_key(|s| &s.name);
-        scan_positions
-    }
-
     fn colorize(&self) {
         for scan_position in self.scan_positions() {
             self.colorize_scan_position(scan_position)
@@ -94,7 +78,6 @@ impl Colorizer {
         let mut image_dir = self.image_dir.clone();
         image_dir.push(&scan_position.name);
         if !image_dir.exists() {
-            println!("No images for this scan position, skipping");
             return;
         }
         let image_groups: Vec<_> = fs::read_dir(image_dir)
@@ -136,7 +119,6 @@ impl Colorizer {
                 .sync_to_pps(self.sync_to_pps)
                 .open()
                 .unwrap();
-            println!("Opened rxp stream at {}", rxpfile.display());
             let mut lasfile = self.las_dir.clone();
             if use_scanpos_names {
                 lasfile.push(Path::new(&scan_position.name).with_extension("las"));
@@ -144,7 +126,6 @@ impl Colorizer {
                 lasfile.push(rxpfile.with_extension("las").file_name().unwrap());
             }
             let mut writer = las::Writer::from_path(&lasfile, self.las_header()).unwrap();
-            println!("Opened las file at {}", lasfile.display());
 
             for point in stream {
                 let point = point.expect("could not read rxp point");
@@ -170,6 +151,19 @@ impl Colorizer {
                 writer.write(&point).expect("could not write las point");
             }
         }
+    }
+
+    fn scan_positions(&self) -> Vec<&ScanPosition> {
+        let mut scan_positions: Vec<_> = if let Some(names) = self.scan_position_names.as_ref() {
+            names
+                .iter()
+                .map(|name| self.project.scan_positions.get(name).unwrap())
+                .collect()
+        } else {
+            self.project.scan_positions.values().collect()
+        };
+        scan_positions.sort_by_key(|s| &s.name);
+        scan_positions
     }
 
     fn to_color(&self, n: f32) -> Color {
