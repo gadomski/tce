@@ -204,10 +204,10 @@ fn main() {
         let scan_position = project.scan_positions.get(name.as_str()).unwrap();
         // We colorize every singlescan rxp, as defined in the project xml.
         let paths = scan_position.singlescan_rxp_paths(&project);
-        let use_scanpos_name = matches.is_present("use-scanpos-name");
-        if use_scanpos_name && paths.len() > 1 {
+        let use_scanpos_names = matches.is_present("use-scanpos-names");
+        if use_scanpos_names && paths.len() > 1 {
             panic!(
-                "--use-scanpos-name was provided, but there are {} rxp files for scan position {}",
+                "--use-scanpos-names was provided, but there are {} rxp files for scan position {}",
                 paths.len(),
                 scan_position.name
             );
@@ -230,7 +230,7 @@ fn main() {
                 }
             };
             let mut lasfile = las_dir.clone();
-            if use_scanpos_name {
+            if use_scanpos_names {
                 lasfile.push(Path::new(&scan_position.name).with_extension("las"));
             } else {
                 lasfile.push(rxpfile.with_extension("las").file_name().expect(

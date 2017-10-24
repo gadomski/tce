@@ -49,6 +49,6 @@ args:
     - rotate:
         help: If the RiSCAN project has the images in the original orientation, but the actual images files are rotated 90° to the right, use this flag.
         long: rotate
-    - use-scanpos-name:
+    - use-scanpos-names:
         help: By default, output las files are named with the same file stem as their source rxp. If this option is true, the output las files will instead be named with the same file stem as their source scan position. The process will error if a single scan position has more than one rxp.
-        long: use-scanpos-name
+        long: use-scanpos-names
