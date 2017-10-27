@@ -499,7 +499,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "riscan-pro"
 version = "0.2.1"
-source = "git+https://github.com/gadomski/riscan-pro#a4a9af5b024bfc75ef55716e593894a56b8d237e"
+source = "git+https://github.com/gadomski/riscan-pro#4f8002e2c7c26ec1ddbf493bde066d2815ec583f"
 dependencies = [
  "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
