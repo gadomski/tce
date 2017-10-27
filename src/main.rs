@@ -35,7 +35,8 @@ extern crate scanifc;
 
 use clap::{App, ArgMatches};
 use irb::Irb;
-use las::point::Color;
+use las::Color;
+use las::point::Format;
 use palette::{Gradient, Rgb};
 use riscan_pro::{CameraCalibration, MountCalibration, Point, Project, ScanPosition, Socs};
 use riscan_pro::scan_position::Image;
@@ -301,7 +302,7 @@ impl Config {
     fn las_header(&self) -> las::Header {
         let mut header = las::Header::default();
         // Point format 3 includes both gps time and color.
-        header.point_format = 3.into();
+        header.point_format = Format::new(3).unwrap();
         header.transforms = las::Vector {
             x: las::Transform {
                 scale: 0.001,
