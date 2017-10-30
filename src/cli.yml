@@ -55,3 +55,7 @@ args:
     - keep-without-thermal:
         help: Include points that don't have any thermal data.
         long: keep-without-thermal
+    - name-map:
+        help: A map used to translate filesystem image paths to RiSCAN Pro image names.
+        long: name-map
+        takes_value: true
