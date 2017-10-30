@@ -12,4 +12,7 @@ las = { git = "https://github.com/gadomski/las-rs" }
 palette = "0.2"
 riscan-pro = { git = "https://github.com/gadomski/riscan-pro" }
 scanifc = { git = "https://github.com/gadomski/rivlib-rs" }
+serde = "1.0"
+serde_derive = "1.0"
 text_io = "0.1"
+toml = "0.4"

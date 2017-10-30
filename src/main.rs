@@ -6,7 +6,10 @@ extern crate palette;
 extern crate riscan_pro;
 extern crate scanifc;
 #[macro_use]
+extern crate serde_derive;
+#[macro_use]
 extern crate text_io;
+extern crate toml;
 
 use clap::{App, ArgMatches};
 use irb::Irb;
@@ -73,6 +76,7 @@ struct Config {
     sync_to_pps: bool,
     temperature_gradient: Gradient<Rgb>,
     use_scanpos_names: bool,
+    name_map: NameMap,
 }
 
 struct ImageGroup<'a> {
@@ -89,8 +93,23 @@ struct Translation {
     outfile: PathBuf,
 }
 
+#[derive(Debug, Default, Deserialize)]
+struct NameMap {
+    maps: Vec<FromTo>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct FromTo {
+    from: String,
+    to: String,
+}
+
 impl Config {
     fn new(matches: &ArgMatches) -> Config {
+        use std::fs::File;
+        use std::io::Read;
+        use toml;
+
         let project = Project::from_path(matches.value_of("PROJECT").unwrap()).unwrap();
         let image_dir = PathBuf::from(matches.value_of("IMAGE_DIR").unwrap());
         let las_dir = Path::new(matches.value_of("LAS_DIR").unwrap()).to_path_buf();
@@ -104,6 +123,16 @@ impl Config {
             (min_temperature, min_temperature_color),
             (max_temperature, max_temperature_color),
         ]);
+        let name_map = if let Some(name_map) = matches.value_of("name-map") {
+            let mut s = String::new();
+            File::open(name_map)
+                .unwrap()
+                .read_to_string(&mut s)
+                .unwrap();
+            toml::from_str(&s).unwrap()
+        } else {
+            NameMap::default()
+        };
         Config {
             image_dir: image_dir,
             keep_without_thermal: matches.is_present("keep-without-thermal"),
@@ -118,6 +147,7 @@ impl Config {
             sync_to_pps: matches.is_present("sync-to-pps"),
             temperature_gradient: temperature_gradient,
             use_scanpos_names: matches.is_present("use-scanpos-names"),
+            name_map: name_map,
         }
     }
 
@@ -234,13 +264,22 @@ impl Config {
         match fs::read_dir(image_dir) {
             Ok(read_dir) => {
                 read_dir
-                    .filter_map(|entry| {
+                    .enumerate()
+                    .filter_map(|(i, entry)| {
                         let entry = entry.unwrap();
                         if entry.path().extension().map(|e| e == "irb").unwrap_or(
                             false,
                         )
                         {
-                            let image = scan_position.image_from_path(entry.path()).unwrap();
+                            let image = if let Some(name) = self.name_map(scan_position) {
+                                let image_name = format!("{} - Image{:03}", name, i + 1);
+                                scan_position.images.get(&image_name).expect(&format!(
+                                    "Could not find image {}",
+                                    image_name
+                                ))
+                            } else {
+                                scan_position.image_from_path(entry.path()).unwrap()
+                            };
                             let irb = Irb::from_path(entry.path().to_string_lossy().as_ref())
                                 .unwrap();
                             let camera_calibration =
@@ -278,6 +317,14 @@ impl Config {
             outfile.push(infile.as_ref().with_extension("las").file_name().unwrap());
         }
         outfile
+    }
+
+    fn name_map(&self, scan_position: &ScanPosition) -> Option<&str> {
+        self.name_map
+            .maps
+            .iter()
+            .find(|map| map.from == scan_position.name)
+            .map(|map| map.to.as_str())
     }
 }
 
