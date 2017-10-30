@@ -30,6 +30,8 @@ extern crate palette;
 extern crate riscan_pro;
 // [scanifc](https://github.com/gadomski/rivlib-rs) reads data from Riegl rxp files.
 extern crate scanifc;
+#[macro_use]
+extern crate text_io;
 
 // We bring in various names to make their later usages less verbose.
 
@@ -41,6 +43,7 @@ use palette::{Gradient, Rgb};
 use riscan_pro::{CameraCalibration, MountCalibration, Point, Project, ScanPosition, Socs};
 use riscan_pro::scan_position::Image;
 use scanifc::point3d::Stream;
+use std::fmt;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -58,6 +61,18 @@ fn main() {
     // Creates a `Config` object from the command-line switches.
     let config = Config::new(&matches);
     println!("done.");
+    println!("{}", config);
+    loop {
+        print!("Continue? (y/n) ");
+        std::io::stdout().flush().unwrap();
+        let answer: String = read!();
+        println!();
+        match answer.to_lowercase().as_str() {
+            "y" => break,
+            "n" => return,
+            _ => println!("Unknown response: {}", answer),
+        }
+    }
 
     // The user can specify which scan positions are to be processed via the command line, or by
     // default we process them all.
@@ -126,6 +141,7 @@ struct ImageGroup<'a> {
     camera_calibration: &'a CameraCalibration,
     image: &'a Image,
     irb: Irb,
+    irb_path: PathBuf,
     mount_calibration: &'a MountCalibration,
     rotate: bool,
 }
@@ -351,6 +367,7 @@ impl Config {
                                 camera_calibration: camera_calibration,
                                 image: image,
                                 irb: irb,
+                                irb_path: entry.path(),
                                 mount_calibration: mount_calibration,
                                 rotate: self.rotate,
                             })
@@ -382,6 +399,30 @@ impl Config {
             outfile.push(infile.as_ref().with_extension("las").file_name().unwrap());
         }
         outfile
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Configuration:")?;
+        writeln!(f, "  - project: {}", self.project.path.display())?;
+        writeln!(f, "  - image dir: {}", self.image_dir.display())?;
+        writeln!(f, "  - las dir: {}", self.las_dir.display())?;
+        writeln!(f, "  - scan positions:")?;
+        for scan_position in self.scan_positions() {
+            writeln!(f, "    - name: {}", scan_position.name)?;
+            let image_groups = self.image_groups(scan_position);
+            if image_groups.is_empty() {
+                writeln!(f, "    - no images for this scan position")?;
+            } else {
+                writeln!(f, "    - images:")?;
+                for image_group in image_groups {
+                    writeln!(f, "      - {}", image_group.irb_path.display())?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
