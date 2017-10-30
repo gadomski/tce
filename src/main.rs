@@ -273,7 +273,7 @@ impl Config {
                 ..Default::default()
             };
             // Writes the las point out to the outfile.
-            writer.write(&point).expect("could not write las point");
+            writer.write(point).expect("could not write las point");
             // las::Writer implements `Drop`, meaning that the las header gets rewritten with the
             // correct values when `writer` goes out of scope.
         }
